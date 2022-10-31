@@ -1,6 +1,7 @@
 const fs = require("fs");
 const http = require("http");
 const url = require("url");
+const replaceTemplate = require("./modules/replaceTemplate");
 
 // IMPORTANT CONCEPT
 // All top level codes are excuted only at first that is at the begining
@@ -42,22 +43,6 @@ const url = require("url");
 // ////////////////////////////
 // SERVER
 
-function replaceTemplate(template, product) {
-  let output = template.replace(/{%PRODUCTNAME%}/g, product.productName);
-  output = output.replace(/{%PRICE%}/g, product.price);
-  output = output.replace(/{%QUANTITY%}/g, product.quantity);
-  output = output.replace(/{%IMAGE%}/g, product.image);
-  output = output.replace(/{%ID%}/g, product.id);
-  output = output.replace(/{%FROM%}/g, product.from);
-  output = output.replace(/{%DESCRIPTION%}/g, product.description);
-  output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
-
-  if (!product.organic)
-    output = output.replace(/{%NOTORGANIC%}/g, "not-organic");
-
-  return output;
-}
-
 // TOP LEVEL READING
 const data = fs.readFileSync(`${__dirname}/dev-data/data.json`, "utf-8");
 const tempOverview = fs.readFileSync(
@@ -77,19 +62,19 @@ const tempProduct = fs.readFileSync(
 const dataObj = JSON.parse(data);
 
 // Creating Server
-const myFirstServer = http.createServer(async (request, response) => {
-  const pathName = request.url;
+const myFirstServer = http.createServer((request, response) => {
+  // seting the second argument to true will allow us to get a query object with the query datas
+  const { query, pathname } = url.parse(request.url, true);
 
   // Routes
-  // OVERVIEW page -=========
-  if (pathName === "/" || pathName === "/overview") {
+  // OVERVIEW page ==========
+  if (pathname === "/" || pathname === "/overview") {
     const cardsHtml = dataObj
       .map((ele) => replaceTemplate(tempCard, ele))
       .join("");
 
     const output = tempOverview.replace(/{%PRODUCT-CARDS%}/g, cardsHtml);
 
-    console.log(cardsHtml);
     // header
     response.writeHead(200, {
       "Content-type": "text/html",
@@ -97,15 +82,18 @@ const myFirstServer = http.createServer(async (request, response) => {
 
     response.end(output);
 
-    // PRODUCT page  ==========
-  } else if (pathName === "/product") {
+    // PRODUCT page  ===========
+  } else if (pathname === "/product") {
+    const product = dataObj[query.id];
+    const output = replaceTemplate(tempProduct, product);
     response.writeHead(200, {
       "Content-type": "text/html",
     });
-    response.end(tempProduct);
+
+    response.end(output);
 
     // API
-  } else if (pathName === "/api") {
+  } else if (pathname === "/api") {
     response.writeHead(200, { "Content-type": "application/json" });
 
     response.end(data);
