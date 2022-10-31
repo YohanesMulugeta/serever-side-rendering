@@ -1,6 +1,9 @@
 const fs = require("fs");
 const http = require("http");
 const url = require("url");
+
+const slugify = require("slugify");
+
 const replaceTemplate = require("./modules/replaceTemplate");
 
 // IMPORTANT CONCEPT
@@ -60,6 +63,11 @@ const tempProduct = fs.readFileSync(
 
 // PARSING the json
 const dataObj = JSON.parse(data);
+
+// creating slugs, that is the last strings on the url used to identify what is displaying in the page
+const slugs = dataObj.map((el) => slugify(el.productName, { lower: true }));
+
+console.log(slugs);
 
 // Creating Server
 const myFirstServer = http.createServer((request, response) => {
